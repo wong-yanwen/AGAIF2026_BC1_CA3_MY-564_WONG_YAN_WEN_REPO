@@ -28,6 +28,5 @@ ehthumbs_vista.db
 # Project Specific
 # =========================
 # Ignore the raw downloaded zip and your final submission zip
-*.zip
 *.tar.gz
 *.rar
