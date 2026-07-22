@@ -21,7 +21,7 @@ A repository for ASEAN GEOAI Bootcamp - Certified Assessment Assignment 3: AI-As
 
 ### Option 1: View Live on GitHub (Recommended)
 You can view the fully functioning web application immediately without downloading any files:
-**[Insert live GitHub Pages link here]*
+<br>https://wong-yanwen.github.io/AGAIF2026_BC1_CA3_MY-564_WONG_YAN_WEN_REPO/
 
 ### Option 2: Run Locally from Zip File
 
