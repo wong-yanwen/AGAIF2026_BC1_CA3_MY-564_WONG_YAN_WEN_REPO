@@ -1,0 +1,33 @@
+# =========================
+# Operating System Files
+# =========================
+# Mac OS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.cab
+*.lnk
+
+# =========================
+# Editor / IDE Files
+# =========================
+# VS Code specific settings and workspace files
+.vscode/
+*.code-workspace
+
+# =========================
+# Project Specific
+# =========================
+# Ignore the raw downloaded zip and your final submission zip
+*.zip
+*.tar.gz
+*.rar

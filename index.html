@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASEAN GEO AI BC1 CA3</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+
+     <style>
+        body{
+            margin : 10;
+            padding : 10;
+            font-family: Arial, sans-serif;
+        }
+       
+        #map {
+            width : 100%;
+            height : 100vh;
+        } 
+
+        .custom-panel {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+
+        }
+
+        /* Top Left Locator Styles */
+        .locator-panel { width: 260px; }
+        .locator-panel select, .locator-panel input {
+            width: 100%;
+            margin-top: 8px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Legend Styles */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        /* Custom styling to make labels look like the white boxes in the image */
+       
+        .leaflet-tooltip.custom-label {
+            background-color: white;
+            border: 1px solid #999;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            font-weight: bold;
+            color: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+    </style>
+
+</head>
+<body>
+    <div id = "map"></div>
+    
+</body>
+</html>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+crossorigin=""></script>
+<script src = ./data/Asean.js></script>
+<script src =./data/Place.js></script>
+
+
+<script>
+     //1. map initilization : coordinate and zoom level
+    var map =L.map('map').setView([1.0, 115.0],5);
+    
+    
+    //2. osm layer 
+    var Stadia_AlidadeSmoothDark = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}', {
+	minZoom: 0,
+	maxZoom: 20,
+	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	ext: 'png'
+});
+    Stadia_AlidadeSmoothDark.addTo(map);
+
+    //3. set colours for each country
+    const countryColors = {
+        "Singapore": "#9e0142",   
+        "Brunei Darussalam": "#d53e4f",
+        "Cambodia": "#f46d43",
+        "Laos DR": "#fee08b",
+        "Philippines": "#fdae61",
+        "Malaysia": "#5e4fa2",
+        "Vietnam": "#abdda4",
+        "Thailand" : "#66c2a5",
+        "Myanmar": "#3288bd",
+        "Indonesia": "#e6f598"
+    };
+
+    //function to get colours for each country
+    function getCountryStyle(feature) {
+        return {
+            // Looks up the color based on OBJECTID. Falls back to white if missing.
+            fillColor: countryColors[feature.properties.Country] || "#ffffff",
+            color: "#333333", // Dark gray outline for both polygons and circles
+            weight: 1,        // Outline thickness
+            fillOpacity: 0.5 // Adjust transparency 
+        };
+    }
+
+    //draw country borders
+    L.geoJSON(aseanJs, {style : getCountryStyle}).addTo(map);
+
+
+    // 4. Variables to handle filtering logic
+    let placesLayer;
+    let currentFilter = "Indonesia"; // Defaults to Indonesia to match the screenshot
+    let searchQuery = "";
+    let totalLocations = 0;
+
+    // 5. Function to Render/Re-render Places based on filters
+    function renderPlaces() {
+        // Remove the old layer if it exists to make room for the filtered one
+        if (placesLayer) {
+            map.removeLayer(placesLayer);
+        }
+        
+        totalLocations = 0; // Reset count
+
+        // 4. Add placesLayer
+        placesLayer = L.geoJSON(placeJs, {
+            //filter logic, checlk of it matches dropdown and searchbox
+            filter: function(feature) {
+                        let matchesCountry = (currentFilter === "All" || feature.properties.Country === currentFilter);
+                        //safe name check
+                        let placeName = feature.properties.name || "";
+                        let matchesSearch = (searchQuery === "" || placeName.toLowerCase().includes(searchQuery.toLowerCase()));
+                        return matchesCountry && matchesSearch;
+                    },
+
+            //render colour of markers
+            pointToLayer: function (feature, latlng) {
+                //for each point in the country, increment totalLoacations
+                totalLocations++;
+                // L.circleMarker replaces the default image pin with a colorable vector circle
+                // We set the radius and pass in our shared style function
+                let markerParams = getCountryStyle(feature);
+                markerParams.radius = 6; // Set the size of the point
+                
+                return L.circleMarker(latlng, markerParams);
+            },
+            //popup events
+            onEachFeature : function (feature, layer) {
+                let placeName = feature.properties.name || "Unknown Location";
+                
+
+                // does this feature have a property named "name"?
+                if (feature.properties.name) {
+                    //use bindTooltip (permanent) instead of bindPopup (temporary)
+                    layer.bindTooltip(feature.properties.name, {
+                        permanent: true,       // Always visible
+                        direction: 'right',    // Show on the right side
+                        className: 'custom-label', // Uses our custom CSS
+                        offset: [5, 0]         // Shift slightly to the right
+                    });
+                }
+
+            // Popup (Shown only when clicked, displaying coordinates and population)
+            let lat = feature.geometry.coordinates[1].toFixed(4);
+            let lng = feature.geometry.coordinates[0].toFixed(4);      
+            let popul = feature.properties.population;        
+            layer.bindPopup(`<b>${placeName}</b>
+                            <br>Coordinates: ${lat}, ${lng}
+                            <br>Population: ${popul} `);
+
+            }
+        }).addTo(map);
+
+        // Update the total count text in the UI panel
+        let countDisplay = document.getElementById("location-count");
+        if (countDisplay) countDisplay.innerHTML = `<b>Total locations: ${totalLocations}</b>`;
+
+    }
+
+// 6. Create the Top Left Locator Panel
+    var locatorControl = L.control({position: 'topleft'});
+    locatorControl.onAdd = function (map) {            
+        var div = L.DomUtil.create('div', 'custom-panel locator-panel');
+            
+        // Build the HTML for the panel
+        div.innerHTML = `
+            <h4>ASEAN Places Locator</h4>
+            <div id="location-count"><b>Total locations: 0</b></div>
+            <div class="hint-text">
+                Click a marker to view coordinates. Labels are shown for each location.
+            </div>
+            <select id="country-filter">
+                <option value="All">All Countries</option>
+                <option value="Brunei Darussalam">Brunei Darussalam</option>
+                <option value="Cambodia">Cambodia</option>
+                <option value="Indonesia" selected>Indonesia</option>                
+                <option value="Laos DR">Laos DR</option>
+                <option value="Malaysia">Malaysia</option>
+                <option value="Myanmar">Myanmar</option>
+                <option value="Philippines">Philippines</option>
+                <option value="Singapore">Singapore</option>
+                <option value="Thailand">Thailand</option>
+                <option value="Vietnam">Vietnam</option>
+            </select>
+                <input type="text" id="name-search" placeholder="Search place name...">
+                `;
+            
+            // Prevent map dragging when clicking inside the panel
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+
+        locatorControl.addTo(map);
+
+// 7. Create the Bottom Left Legend Panel
+    var legendControl = L.control({position: 'bottomleft'});
+    legendControl.onAdd = function (map) {
+        var div = L.DomUtil.create('div', 'custom-panel');
+        div.innerHTML = '<h4>Country Legend</h4>';
+            
+        // Loop through our color dictionary and generate the HTML for each country
+        for (let country in countryColors) {
+            div.innerHTML += `
+                <div class="legend-item">
+                    <span class="legend-color" style="background:${countryColors[country]}"></span>
+                    <span>${country}</span>
+                </div>
+            `;
+        }
+            return div;
+    };
+        
+    legendControl.addTo(map);
+
+    // 8. Attach Event Listeners to our UI Panel Inputs
+        // Dropdown listener
+        document.getElementById('country-filter').addEventListener('change', function(e) {
+            currentFilter = e.target.value;
+            searchQuery = ""; //clear searchbox when changing country
+            renderPlaces(); // Re-draw markers when changed
+            
+            // Optional: Automatically zoom to fit the newly filtered dots
+            if (totalLocations > 0) {
+                map.fitBounds(placesLayer.getBounds(), { padding: [50, 50] });
+            }
+        });
+
+        // Text box search listener
+        document.getElementById('name-search').addEventListener('input', function(e) {
+            searchQuery = e.target.value;
+
+            // If typing a search, set dropdown to "All Countries" so it searches everywhere
+            if (searchQuery !== "") {
+                currentFilter = "All";
+                document.getElementById('country-filter').value = "All";
+            }
+            renderPlaces(); // Re-draw markers
+        });
+
+        // 9. Final Step: Run the render function once when the page loads
+        renderPlaces();
+        
+        // Auto-fit the map to show Indonesia based on the initial load
+        map.fitBounds(placesLayer.getBounds(), { padding: [50, 50] });
+
+</script>
